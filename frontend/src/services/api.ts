@@ -1,5 +1,5 @@
 // Base API Client for SkillBridge
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://graceful-laughter-production-b701.up.railway.app/api' : '/api');
 
 export const TOKEN_KEY = 'skillbridge_token';
 
@@ -38,7 +38,9 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const base = API_BASE_URL.replace(/\/+$/, '');
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${base}${path}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
