@@ -125,23 +125,23 @@ export const BookingPage: React.FC = () => {
               <span className="font-mono font-bold text-gray-900">{bookingResult.bookingId}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-              <span className="text-gray-500 font-medium">Escrow Hold Ref:</span>
-              <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                {bookingResult.escrowRef}
+              <span className="text-gray-500 font-medium">Money Held In:</span>
+              <span className="font-mono font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                ICICI Bank Nodal Escrow A/C #001205009182
               </span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-              <span className="text-gray-500 font-medium">Scheduled Time:</span>
+              <span className="text-gray-500 font-medium">Scheduled Class:</span>
               <span className="font-bold text-gray-900">{selectedDate}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
               <span className="text-gray-500 font-medium">Prepaid Amount:</span>
-              <span className="font-bold text-emerald-700">₹{bookingResult.totalAmount.toLocaleString('en-IN')} (Captured)</span>
+              <span className="font-bold text-emerald-700">₹{bookingResult.totalAmount.toLocaleString('en-IN')} (Locked in Bank)</span>
             </div>
             <div className="flex justify-between items-center text-[11px] pt-1">
-              <span className="text-gray-500">Mentor Payout Status:</span>
-              <span className="font-bold text-amber-600 flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Locked until session ends
+              <span className="text-gray-500">Destination Account:</span>
+              <span className="font-bold text-gray-800 flex items-center gap-1">
+                <Building className="w-3.5 h-3.5 text-blue-600" /> Mentor's HDFC Bank A/C (••••4892) — Added after session
               </span>
             </div>
           </div>
@@ -370,21 +370,21 @@ export const BookingPage: React.FC = () => {
             {/* Escrow Rule Details */}
             <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2.5 text-xs">
               <div className="flex items-center gap-2 font-bold text-blue-300">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>3-Step Escrow Guarantee</span>
+                <Building className="w-4 h-4 text-emerald-400" />
+                <span>3-Step Bank Escrow Settlement</span>
               </div>
               <ul className="space-y-1.5 text-[11px] text-slate-300">
                 <li className="flex items-start gap-1.5">
                   <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
-                  <span><strong>Prepaid:</strong> Student authorizes payment now before slot locks.</span>
+                  <span><strong>1. Prepaid by Student:</strong> Authorized upfront via UPI/Card to reserve your slot.</span>
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
-                  <span><strong>Platform Escrow:</strong> Money stays locked in SkillBridge, NOT sent to mentor.</span>
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
+                  <span><strong>2. Money Held in a Bank:</strong> Funds locked in Bank Escrow Account (ICICI Nodal). The mentor cannot access or touch the money.</span>
                 </li>
                 <li className="flex items-start gap-1.5">
                   <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
-                  <span><strong>Disbursed After Class:</strong> Released to mentor only upon session completion!</span>
+                  <span><strong>3. After Session Added to Mentor Account:</strong> After the live class ends, the bank directly transfers ₹{pkgPrice.toLocaleString('en-IN')} into mentor's HDFC Bank A/C!</span>
                 </li>
               </ul>
             </div>

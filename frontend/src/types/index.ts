@@ -27,6 +27,15 @@ export interface MentorPackage {
   deliverables?: string[];
 }
 
+export interface MentorBankDetails {
+  bankName: string;
+  accountNumberMasked: string;
+  ifscCode: string;
+  accountHolderName: string;
+  payoutStatus: 'verified' | 'pending';
+  upiId?: string;
+}
+
 export interface Mentor {
   id: string;
   name: string;
@@ -43,6 +52,7 @@ export interface Mentor {
   languages: string[];
   nextAvailableSlot: string;
   packages: MentorPackage[];
+  bankDetails?: MentorBankDetails;
 }
 
 export interface Booking {
@@ -62,9 +72,12 @@ export interface Booking {
   packagePriceINR?: number;
   status: 'upcoming' | 'pending' | 'completed' | 'cancelled';
   zoomLink?: string;
-  // Escrow & Payment Fields
+  // Bank Escrow & Transfer Fields
   paymentStatus?: 'escrow_held' | 'escrow_released' | 'refunded';
   escrowHoldRef?: string;
+  bankEscrowAccount?: string;
+  mentorBankAccount?: string;
+  bankTransferUtr?: string;
   platformFeeInr?: number;
   mentorPayoutInr?: number;
   paymentMethod?: string;

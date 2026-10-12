@@ -57,6 +57,14 @@ const initialMentors: Mentor[] = [
     skills: ['System Design', 'Java', 'Distributed Systems', 'Cloud Architecture', 'Spring Boot', 'Kafka'],
     languages: ['English', 'Hindi'],
     nextAvailableSlot: 'Tomorrow, 7:00 PM',
+    bankDetails: {
+      bankName: 'HDFC Bank',
+      accountNumberMasked: '•••• •••• 4892',
+      ifscCode: 'HDFC0001234',
+      accountHolderName: 'Aarav Sharma',
+      payoutStatus: 'verified',
+      upiId: 'aarav.sharma@okhdfcbank'
+    },
     packages: [
       {
         id: 'pkg-101',
@@ -160,9 +168,11 @@ const initialBookings: Booking[] = [
     zoomLink: '/session/bk-1001',
     paymentStatus: 'escrow_held',
     escrowHoldRef: 'ESC-SB-90281',
+    bankEscrowAccount: 'ICICI Bank Nodal Escrow A/C #001205009182',
+    mentorBankAccount: 'HDFC Bank A/C •••• 4892 (IFSC: HDFC0001234)',
     platformFeeInr: 249,
     mentorPayoutInr: 2250,
-    paymentMethod: 'UPI (GPay)'
+    paymentMethod: 'Prepaid Student UPI (GPay)'
   }
 ];
 
@@ -181,24 +191,24 @@ const initialNotifications: NotificationItem[] = [
   {
     id: 'notif-2',
     role: 'student',
-    title: '🔒 Prepaid Payment Secured in Escrow',
-    message: '₹2,499 has been locked in SkillBridge Escrow (Ref: ESC-SB-90281). Funds will be released to mentor ONLY after session completion.',
+    title: '🏦 Money Held in Bank Escrow',
+    message: '₹2,499 held in ICICI Bank Nodal Escrow Account (Ref: ESC-SB-90281). Neither party can touch this money until the video session concludes.',
     type: 'payment_escrow',
     createdAt: '1 hour ago',
     read: false,
     actionUrl: '/student',
-    actionLabel: 'View Booking'
+    actionLabel: 'View Bank Escrow'
   },
   {
     id: 'notif-3',
     role: 'mentor',
-    title: '💰 Escrow Deposit Acknowledged',
-    message: 'Student prepaid ₹2,499 for Mock System Design Round. Payout (₹2,250) is held in Escrow and will be released to your bank upon session sign-off.',
+    title: '🏛️ Bank Escrow Holding Confirmed',
+    message: 'Student prepaid ₹2,499 (held in ICICI Bank Escrow). Upon class completion, ₹2,250 will be transferred directly to your HDFC Bank A/C (••••4892).',
     type: 'payment_escrow',
     createdAt: '1 hour ago',
     read: false,
     actionUrl: '/mentor',
-    actionLabel: 'View Studio'
+    actionLabel: 'View Bank Account'
   }
 ];
 
@@ -431,6 +441,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const completeSessionAndReleaseEscrow = (bookingId: string) => {
+    const utr = `UTR-SB-IMPS-${Math.floor(100000 + Math.random() * 900000)}`;
+
     setBookings((prev) =>
       prev.map((b) => {
         if (b.id === bookingId || b.id === `bk-${bookingId}` || bookingId.includes(b.id)) {
@@ -438,6 +450,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...b,
             status: 'completed',
             paymentStatus: 'escrow_released',
+            bankTransferUtr: utr,
             sessionCompletedAt: new Date().toISOString()
           };
         }
@@ -447,14 +460,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const targetBooking = bookings.find((b) => b.id === bookingId || bookingId.includes(b.id));
     const payout = targetBooking?.mentorPayoutInr || 2250;
+    const mentorBank = targetBooking?.mentorBankAccount || 'HDFC Bank A/C •••• 4892 (IFSC: HDFC0001234)';
 
     addNotification({
-      title: '🎉 Session Completed & Escrow Released!',
-      message: `Mentorship session #${bookingId} concluded. ₹${payout.toLocaleString('en-IN')} has been released from Escrow to mentor bank account.`,
+      title: '🏛️ Money Added to Mentor Bank Account!',
+      message: `Session completed! The bank escrow released ₹${payout.toLocaleString('en-IN')} directly into mentor's account (${mentorBank}) via IMPS (Ref: ${utr}).`,
       type: 'payout_released',
       role: 'all',
       actionUrl: '/student',
-      actionLabel: 'View Receipt'
+      actionLabel: 'View Bank Transfer'
     });
   };
 
@@ -470,16 +484,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       zoomLink: `/session/${tempId}`,
       paymentStatus: 'escrow_held',
       escrowHoldRef: escrowRef,
+      bankEscrowAccount: bookingData.bankEscrowAccount || 'ICICI Bank Nodal Escrow A/C #001205009182',
+      mentorBankAccount: bookingData.mentorBankAccount || 'HDFC Bank A/C •••• 4892 (IFSC: HDFC0001234)',
       platformFeeInr: platformFee,
       mentorPayoutInr: mentorPayout,
-      paymentMethod: bookingData.paymentMethod || 'Prepaid Escrow (UPI/Card)'
+      paymentMethod: bookingData.paymentMethod || 'Prepaid Student UPI (Instant Bank Hold)'
     };
     setBookings((prev) => [newBooking, ...prev]);
 
     // Dispatch notifications
     addNotification({
-      title: '🔒 Prepaid Payment Secured in Escrow',
-      message: `₹${bookingData.amountInr.toLocaleString('en-IN')} held safely in Escrow for ${bookingData.packageTitle}. Funds will release after session completion.`,
+      title: '🏦 Prepaid Funds Locked in Bank Escrow',
+      message: `₹${bookingData.amountInr.toLocaleString('en-IN')} held in ICICI Bank Escrow. Funds will be transferred to mentor's bank account ONLY after session completion.`,
       type: 'payment_escrow',
       role: 'student',
       actionUrl: `/session/${tempId}`,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { Booking } from '../../types';
 import {
   Mic,
   MicOff,
@@ -21,7 +22,8 @@ import {
   Star,
   Award,
   ArrowRight,
-  Play
+  Play,
+  Building
 } from 'lucide-react';
 
 export const SessionRoomPage: React.FC = () => {
@@ -30,12 +32,15 @@ export const SessionRoomPage: React.FC = () => {
   const { user, bookings, completeSessionAndReleaseEscrow } = useApp();
 
   // Find target booking
-  const currentBooking = bookings.find(
+  const currentBooking: Booking = bookings.find(
     (b) => b.id === sessionId || b.id === `bk-${sessionId}` || sessionId?.includes(b.id)
   ) || bookings[0] || {
     id: sessionId || 'bk-1001',
+    studentId: 'std-1',
     studentName: user?.name || 'Rohan Verma',
+    mentorId: 'm-1',
     mentorName: 'Aarav Sharma',
+    packageId: 'pkg-101',
     packageTitle: 'Mock System Design Round + Architecture Critique',
     date: 'Today',
     timeSlot: '7:00 PM - 8:30 PM',
@@ -44,7 +49,8 @@ export const SessionRoomPage: React.FC = () => {
     status: 'upcoming',
     paymentStatus: 'escrow_held',
     escrowHoldRef: 'ESC-SB-90281',
-    mentorPayoutInr: 2250
+    mentorPayoutInr: 2250,
+    bankTransferUtr: 'UTR-SB-90281'
   };
 
   const isCompleted = currentBooking.status === 'completed';
@@ -118,11 +124,11 @@ export const SessionRoomPage: React.FC = () => {
             <span>{isClassroomJoined ? `${formatTime(secondsRemaining)} remaining` : `Scheduled: ${currentBooking.date}, ${currentBooking.timeSlot}`}</span>
           </div>
 
-          {/* Prepaid Escrow Status Badge */}
+          {/* Bank Escrow Status Badge */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>
-              {isEscrowReleased ? 'Escrow Released to Mentor' : `Escrow Locked: ₹${(currentBooking.amountInr || 2499).toLocaleString('en-IN')}`}
+              {isEscrowReleased ? 'Added to Mentor Bank Account' : `Held in Bank Escrow: ₹${(currentBooking.amountInr || 2499).toLocaleString('en-IN')}`}
             </span>
           </div>
 
@@ -133,7 +139,7 @@ export const SessionRoomPage: React.FC = () => {
               className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Complete & Release Escrow</span>
+              <span>Complete & Add to Mentor Account</span>
             </button>
           )}
         </div>
@@ -268,18 +274,26 @@ export const SessionRoomPage: React.FC = () => {
           <div className="w-full max-w-md bg-slate-900 border border-white/15 rounded-3xl p-6 text-white space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                <Award className="w-7 h-7" />
+                <Building className="w-7 h-7" />
               </div>
-              <h3 className="text-lg font-black text-white">Conclude Session & Release Escrow</h3>
+              <h3 className="text-lg font-black text-white">Conclude Session & Add to Mentor Account</h3>
               <p className="text-xs text-slate-400">
-                Confirm that your 1-on-1 mentorship class with <span className="text-white font-semibold">{currentBooking.mentorName}</span> has completed.
+                Confirming completion commands the Escrow Bank to execute an automated IMPS transfer directly into <span className="text-white font-semibold">{currentBooking.mentorName}</span>'s bank account.
               </p>
             </div>
 
             {/* Payout Breakdown */}
-            <div className="p-4 rounded-xl bg-slate-950 border border-white/10 text-xs space-y-2">
+            <div className="p-4 rounded-xl bg-slate-950 border border-white/10 text-xs space-y-2.5">
               <div className="flex justify-between text-slate-400">
-                <span>Escrow Held Amount:</span>
+                <span>Money Held In:</span>
+                <span className="text-blue-400 font-mono font-medium">ICICI Bank Escrow (••••9182)</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Destination Bank:</span>
+                <span className="text-white font-semibold">HDFC Bank A/C (••••4892)</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Total Prepaid by Student:</span>
                 <span className="text-white font-semibold">₹{(currentBooking.amountInr || 2499).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-slate-400">
@@ -287,8 +301,8 @@ export const SessionRoomPage: React.FC = () => {
                 <span className="text-white font-semibold">₹{Math.round((currentBooking.amountInr || 2499) * 0.1).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-white/10 font-bold">
-                <span className="text-emerald-400">Release Payout to Mentor Bank:</span>
-                <span className="text-emerald-400 text-sm">₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')}</span>
+                <span className="text-emerald-400">Direct Deposit to Mentor Account:</span>
+                <span className="text-emerald-400 text-sm">₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')} (IMPS)</span>
               </div>
             </div>
 
@@ -330,7 +344,7 @@ export const SessionRoomPage: React.FC = () => {
                 className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Confirm & Release ₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')}</span>
+                <span>Confirm & Add ₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')} to Mentor Bank</span>
               </button>
               <button
                 onClick={() => setShowCompletionModal(false)}
@@ -348,10 +362,10 @@ export const SessionRoomPage: React.FC = () => {
         <div className="fixed bottom-6 right-6 z-50 max-w-sm p-4 rounded-2xl bg-slate-900 border border-emerald-500/40 shadow-2xl text-white space-y-2 animate-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Escrow Disbursed to Mentor Bank</span>
+            <span>Money Added to Mentor's Bank Account!</span>
           </div>
           <p className="text-[11px] text-slate-300">
-            Payment has been successfully settled for Session #{currentBooking.id}. Scorecard feedback saved.
+            ₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')} has been transferred via IMPS into mentor's HDFC Bank A/C (••••4892). Bank UTR Ref: {currentBooking.bankTransferUtr || 'UTR-SB-90281'}.
           </p>
           <div className="pt-1 flex gap-2">
             <Link

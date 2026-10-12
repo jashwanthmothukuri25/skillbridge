@@ -18,7 +18,8 @@ import {
   Users,
   Settings,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Building
 } from 'lucide-react';
 
 export const MentorDashboard: React.FC = () => {
@@ -215,6 +216,34 @@ export const MentorDashboard: React.FC = () => {
           </div>
           <div className="text-2xl font-bold text-gray-900">{bookings.length || 2}</div>
           <div className="text-[11px] text-blue-600 font-medium mt-1">Next: Today, 7:00 PM</div>
+        </div>
+      </div>
+
+      {/* Mentor Verified Bank Account Card */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold shrink-0">
+            <Building className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-gray-900">Verified Payout Bank Account</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                ✓ Active for Auto-Deposit
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              HDFC Bank • A/C No: <strong className="text-gray-800">•••• •••• 4892</strong> • IFSC: <strong className="text-gray-800">HDFC0001234</strong> • Beneficiary: <strong className="text-gray-800">{user?.name || 'Aarav Sharma'}</strong>
+            </p>
+            <p className="text-[11px] text-emerald-700 mt-1 font-medium">
+              💡 Student payments prepaid and held in Bank Escrow are automatically added directly to this account right after session completion.
+            </p>
+          </div>
+        </div>
+
+        <div className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-right self-start md:self-auto shrink-0">
+          <span className="text-[10px] text-gray-500 block uppercase font-bold">UPI Auto-Sweep ID</span>
+          <span className="text-xs font-mono font-bold text-blue-700">aarav.sharma@okhdfcbank</span>
         </div>
       </div>
 
