@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole, Mentor, Booking } from '../types';
+import { User, UserRole, Mentor, Booking, NotificationItem } from '../types';
 import { authService } from '../services/authService';
 import { mentorService } from '../services/mentorService';
 import { bookingService } from '../services/bookingService';
@@ -9,6 +9,8 @@ interface AppContextType {
   user: User | null;
   mentors: Mentor[];
   bookings: Booking[];
+  notifications: NotificationItem[];
+  unreadNotificationCount: number;
   login: (role: UserRole, email: string, password?: string) => Promise<void>;
   logout: () => void;
   signUpStudent: (studentData: {
@@ -32,6 +34,10 @@ interface AppContextType {
   }) => Promise<void>;
   addBooking: (booking: Omit<Booking, 'id'>) => string;
   cancelBooking: (bookingId: string) => void;
+  completeSessionAndReleaseEscrow: (bookingId: string) => void;
+  addNotification: (item: Omit<NotificationItem, 'id' | 'createdAt' | 'read'>) => void;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
   refreshData: () => Promise<void>;
 }
 
@@ -146,12 +152,53 @@ const initialBookings: Booking[] = [
     mentorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
     packageId: 'pkg-101',
     packageTitle: 'Mock System Design Round + Architecture Critique',
-    date: 'Tomorrow',
+    date: 'Today',
     timeSlot: '7:00 PM - 8:30 PM',
     durationMinutes: 90,
     amountInr: 2499,
     status: 'upcoming',
-    zoomLink: '/session/live-demo-1001'
+    zoomLink: '/session/bk-1001',
+    paymentStatus: 'escrow_held',
+    escrowHoldRef: 'ESC-SB-90281',
+    platformFeeInr: 249,
+    mentorPayoutInr: 2250,
+    paymentMethod: 'UPI (GPay)'
+  }
+];
+
+const initialNotifications: NotificationItem[] = [
+  {
+    id: 'notif-1',
+    role: 'all',
+    title: '⏰ Class Reminder: Today at 7:00 PM',
+    message: 'Your 1-on-1 System Design session with Aarav Sharma is scheduled for today at 7:00 PM. Classroom opens 10 min early!',
+    type: 'class_reminder',
+    createdAt: '10 mins ago',
+    read: false,
+    actionUrl: '/session/bk-1001',
+    actionLabel: 'Enter Classroom'
+  },
+  {
+    id: 'notif-2',
+    role: 'student',
+    title: '🔒 Prepaid Payment Secured in Escrow',
+    message: '₹2,499 has been locked in SkillBridge Escrow (Ref: ESC-SB-90281). Funds will be released to mentor ONLY after session completion.',
+    type: 'payment_escrow',
+    createdAt: '1 hour ago',
+    read: false,
+    actionUrl: '/student',
+    actionLabel: 'View Booking'
+  },
+  {
+    id: 'notif-3',
+    role: 'mentor',
+    title: '💰 Escrow Deposit Acknowledged',
+    message: 'Student prepaid ₹2,499 for Mock System Design Round. Payout (₹2,250) is held in Escrow and will be released to your bank upon session sign-off.',
+    type: 'payment_escrow',
+    createdAt: '1 hour ago',
+    read: false,
+    actionUrl: '/mentor',
+    actionLabel: 'View Studio'
   }
 ];
 
@@ -341,14 +388,112 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    const saved = localStorage.getItem('skillbridge_notifications');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return initialNotifications;
+      }
+    }
+    return initialNotifications;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('skillbridge_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('skillbridge_bookings', JSON.stringify(bookings));
+  }, [bookings]);
+
+  const unreadNotificationCount = notifications.filter(
+    (n) => !n.read && (n.role === 'all' || !user || n.role === user.role)
+  ).length;
+
+  const addNotification = (item: Omit<NotificationItem, 'id' | 'createdAt' | 'read'>) => {
+    const newItem: NotificationItem = {
+      ...item,
+      id: `notif-${Date.now()}`,
+      createdAt: 'Just now',
+      read: false
+    };
+    setNotifications((prev) => [newItem, ...prev]);
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const completeSessionAndReleaseEscrow = (bookingId: string) => {
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (b.id === bookingId || b.id === `bk-${bookingId}` || bookingId.includes(b.id)) {
+          return {
+            ...b,
+            status: 'completed',
+            paymentStatus: 'escrow_released',
+            sessionCompletedAt: new Date().toISOString()
+          };
+        }
+        return b;
+      })
+    );
+
+    const targetBooking = bookings.find((b) => b.id === bookingId || bookingId.includes(b.id));
+    const payout = targetBooking?.mentorPayoutInr || 2250;
+
+    addNotification({
+      title: '🎉 Session Completed & Escrow Released!',
+      message: `Mentorship session #${bookingId} concluded. ₹${payout.toLocaleString('en-IN')} has been released from Escrow to mentor bank account.`,
+      type: 'payout_released',
+      role: 'all',
+      actionUrl: '/student',
+      actionLabel: 'View Receipt'
+    });
+  };
+
   const addBooking = (bookingData: Omit<Booking, 'id'>): string => {
     const tempId = `bk-${Date.now()}`;
+    const escrowRef = `ESC-SB-${Math.floor(10000 + Math.random() * 90000)}`;
+    const platformFee = Math.round(bookingData.amountInr * 0.1);
+    const mentorPayout = bookingData.amountInr - platformFee;
+
     const newBooking: Booking = {
       ...bookingData,
       id: tempId,
-      zoomLink: `/session/live-${tempId}`
+      zoomLink: `/session/${tempId}`,
+      paymentStatus: 'escrow_held',
+      escrowHoldRef: escrowRef,
+      platformFeeInr: platformFee,
+      mentorPayoutInr: mentorPayout,
+      paymentMethod: bookingData.paymentMethod || 'Prepaid Escrow (UPI/Card)'
     };
     setBookings((prev) => [newBooking, ...prev]);
+
+    // Dispatch notifications
+    addNotification({
+      title: '🔒 Prepaid Payment Secured in Escrow',
+      message: `₹${bookingData.amountInr.toLocaleString('en-IN')} held safely in Escrow for ${bookingData.packageTitle}. Funds will release after session completion.`,
+      type: 'payment_escrow',
+      role: 'student',
+      actionUrl: `/session/${tempId}`,
+      actionLabel: 'View Session'
+    });
+
+    addNotification({
+      title: `⏰ Upcoming Class Alert: ${bookingData.date}`,
+      message: `Class booked with ${bookingData.mentorName} for ${bookingData.timeSlot}. Please attend on time.`,
+      type: 'class_reminder',
+      role: 'all',
+      actionUrl: `/session/${tempId}`,
+      actionLabel: 'Enter Classroom'
+    });
 
     if (getToken()) {
       bookingService.createBooking({
@@ -368,8 +513,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cancelBooking = (bookingId: string) => {
     setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b))
+      prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled', paymentStatus: 'refunded' } : b))
     );
+
+    addNotification({
+      title: '↩️ Escrow Refund Processed',
+      message: `Booking #${bookingId} was cancelled. Prepaid escrow funds have been refunded to the student's original payment method.`,
+      type: 'payment_escrow',
+      role: 'all',
+      actionUrl: '/student',
+      actionLabel: 'View Refund'
+    });
 
     if (getToken()) {
       bookingService.cancelBooking(bookingId).catch((err) => {
@@ -384,12 +538,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         user,
         mentors,
         bookings,
+        notifications,
+        unreadNotificationCount,
         login,
         logout,
         signUpStudent,
         signUpMentor,
         addBooking,
         cancelBooking,
+        completeSessionAndReleaseEscrow,
+        addNotification,
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
         refreshData
       }}
     >

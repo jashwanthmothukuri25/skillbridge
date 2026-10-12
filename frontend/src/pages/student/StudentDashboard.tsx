@@ -14,7 +14,9 @@ import {
   AlertCircle,
   FileText,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  Play
 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
@@ -27,8 +29,53 @@ export const StudentDashboard: React.FC = () => {
     return true;
   });
 
+  const upcomingToday = bookings.find(
+    (b) => b.status === 'upcoming' && (b.date === 'Today' || b.timeSlot.includes('PM') || b.timeSlot.includes('AM'))
+  );
+
   return (
     <div className="space-y-6">
+      {/* Upcoming Class Notification Banner */}
+      {upcomingToday && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-0.5 rounded-2xl shadow-md animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="bg-slate-950 text-white p-5 rounded-[15px] flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                <Video className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-wider">
+                    Class Attendance Required Today
+                  </span>
+                  <span className="text-xs text-amber-300 font-mono font-bold">
+                    {upcomingToday.timeSlot}
+                  </span>
+                </div>
+                <h3 className="font-bold text-sm text-white">
+                  {upcomingToday.packageTitle} with {upcomingToday.mentorName}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                  <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Prepaid Escrow Active: ₹{(upcomingToday.amountInr || 2499).toLocaleString('en-IN')}
+                  </span>
+                  <span>•</span>
+                  <span className="text-slate-400">Funds released to mentor only after you complete class</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to={`/session/${upcomingToday.id}`}
+              className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs shadow-lg transition-all flex items-center justify-center gap-2 self-start md:self-auto shrink-0"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Enter Live Video Classroom</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Student Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 to-indigo-950 text-white p-6 rounded-2xl shadow-sm">
         <div>
@@ -148,15 +195,22 @@ export const StudentDashboard: React.FC = () => {
                       {b.mentorName ? b.mentorName.charAt(0) : 'M'}
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-sm text-gray-900">{b.mentorName}</span>
                         <span className="text-xs text-gray-500">• {b.mentorCompany}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
                           {b.status}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          b.paymentStatus === 'escrow_released'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}>
+                          {b.paymentStatus === 'escrow_released' ? '✓ Escrow Disbursed' : '🔒 Escrow Held (Prepaid)'}
                         </span>
                       </div>
                       <div className="text-xs font-medium text-gray-700">{b.packageTitle}</div>
-                      <div className="text-xs text-gray-500 flex items-center gap-3">
+                      <div className="text-xs text-gray-500 flex flex-wrap items-center gap-3">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           {b.date}
@@ -166,9 +220,14 @@ export const StudentDashboard: React.FC = () => {
                           {b.timeSlot}
                         </span>
                         <span>•</span>
-                        <span className="font-semibold text-gray-900">
-                          ₹{b.packagePriceINR?.toLocaleString('en-IN')}
+                        <span className="font-bold text-gray-900">
+                          ₹{(b.amountInr || b.packagePriceINR || 2499).toLocaleString('en-IN')}
                         </span>
+                        {b.escrowHoldRef && (
+                          <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {b.escrowHoldRef}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -17,7 +17,8 @@ import {
   Sparkles,
   Users,
   Settings,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 
 export const MentorDashboard: React.FC = () => {
@@ -105,8 +106,57 @@ export const MentorDashboard: React.FC = () => {
     setNewTopics('');
   };
 
+  const upcomingToday = bookings.find(
+    (b) => b.status === 'upcoming' && (b.date === 'Today' || b.timeSlot.includes('PM') || b.timeSlot.includes('AM'))
+  );
+
+  const totalEscrowHeld = bookings
+    .filter((b) => b.status === 'upcoming')
+    .reduce((sum, b) => sum + (b.mentorPayoutInr || 2250), 0);
+
   return (
     <div className="space-y-6">
+      {/* Upcoming Class Notification Banner */}
+      {upcomingToday && (
+        <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-600 p-0.5 rounded-2xl shadow-md animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="bg-slate-950 text-white p-5 rounded-[15px] flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                <Video className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider">
+                    Class Attendance Required Today
+                  </span>
+                  <span className="text-xs text-emerald-300 font-mono font-bold">
+                    {upcomingToday.timeSlot}
+                  </span>
+                </div>
+                <h3 className="font-bold text-sm text-white">
+                  {upcomingToday.packageTitle} with Student: <span className="text-emerald-300">{upcomingToday.studentName}</span>
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                  <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Escrow Payout Held: ₹{(upcomingToday.mentorPayoutInr || 2250).toLocaleString('en-IN')}
+                  </span>
+                  <span>•</span>
+                  <span className="text-slate-400">Funds release directly to your bank account after session sign-off</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to={`/session/${upcomingToday.id}`}
+              className="px-5 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold text-xs shadow-lg transition-all flex items-center justify-center gap-2 self-start md:self-auto shrink-0"
+            >
+              <Video className="w-4 h-4 fill-current" />
+              <span>Start Video Classroom</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Mentor Welcome Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-blue-950 text-white p-6 rounded-2xl shadow-sm">
         <div>
@@ -133,11 +183,11 @@ export const MentorDashboard: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-gray-200">
           <div className="flex items-center justify-between text-gray-500 text-xs mb-1">
-            <span>Simulated Earnings</span>
-            <DollarSign className="w-4 h-4 text-emerald-500" />
+            <span>Escrow Held Payouts</span>
+            <DollarSign className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-bold text-gray-900">₹42,800</div>
-          <div className="text-[11px] text-emerald-600 font-medium mt-1">+18% this month</div>
+          <div className="text-2xl font-bold text-gray-900">₹{totalEscrowHeld.toLocaleString('en-IN')}</div>
+          <div className="text-[11px] text-amber-600 font-medium mt-1">Releases upon completion</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200">
@@ -209,26 +259,42 @@ export const MentorDashboard: React.FC = () => {
                 key={b.id}
                 className="p-4 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
-                <div>
-                  <span className="font-semibold text-xs text-gray-900">{b.packageTitle}</span>
-                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-xs text-gray-900">{b.packageTitle}</span>
+                    <span className="text-[11px] text-gray-500">• Student: <strong className="text-gray-800">{b.studentName || 'Enrolled Student'}</strong></span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      b.paymentStatus === 'escrow_released'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}>
+                      {b.paymentStatus === 'escrow_released' ? '✓ Payout Disbursed' : '🔒 Payout in Escrow'}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2">
                     <Clock className="w-3.5 h-3.5 text-gray-400" />
                     <span>
                       {b.date} at {b.timeSlot} ({b.durationMinutes || 60} mins)
                     </span>
                     <span>•</span>
-                    <span className="font-semibold text-emerald-600">
-                      ₹{b.packagePriceINR?.toLocaleString('en-IN')}
+                    <span className="font-bold text-emerald-600">
+                      Payout: ₹{(b.mentorPayoutInr || 2250).toLocaleString('en-IN')}
                     </span>
+                    {b.escrowHoldRef && (
+                      <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        {b.escrowHoldRef}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <Link
                   to={`/session/${b.id}`}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors self-start md:self-auto"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors self-start md:self-auto shrink-0"
                 >
                   <Video className="w-3.5 h-3.5" />
-                  Join Video Session
+                  Enter Video Classroom
                 </Link>
               </div>
             ))}

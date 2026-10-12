@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -16,38 +15,63 @@ import {
   Send,
   Users,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Lock,
+  CheckCircle2,
+  Star,
+  Award,
+  ArrowRight,
+  Play
 } from 'lucide-react';
 
 export const SessionRoomPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { user } = useApp();
+  const { user, bookings, completeSessionAndReleaseEscrow } = useApp();
 
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [activeSideTab, setActiveSideTab] = useState<'chat' | 'notes'>('chat');
+  // Find target booking
+  const currentBooking = bookings.find(
+    (b) => b.id === sessionId || b.id === `bk-${sessionId}` || sessionId?.includes(b.id)
+  ) || bookings[0] || {
+    id: sessionId || 'bk-1001',
+    studentName: user?.name || 'Rohan Verma',
+    mentorName: 'Aarav Sharma',
+    packageTitle: 'Mock System Design Round + Architecture Critique',
+    date: 'Today',
+    timeSlot: '7:00 PM - 8:30 PM',
+    durationMinutes: 90,
+    amountInr: 2499,
+    status: 'upcoming',
+    paymentStatus: 'escrow_held',
+    escrowHoldRef: 'ESC-SB-90281',
+    mentorPayoutInr: 2250
+  };
 
-  const [messages, setMessages] = useState([
-    {
-      id: 'm1',
-      sender: 'Mentor',
-      text: 'Hi there! Welcome to our 1-on-1 session. Feel free to paste your code or repository link here.',
-      time: 'Just now',
-    },
-  ]);
-  const [messageInput, setMessageInput] = useState('');
+  const isCompleted = currentBooking.status === 'completed';
+
+  // Video State
+  const [isClassroomJoined, setIsClassroomJoined] = useState(false);
+  const [activeSideTab, setActiveSideTab] = useState<'notes' | 'chat'>('notes');
+  const [notes, setNotes] = useState(
+    '### 1-on-1 Mentorship Agenda & Notes\n\n- [x] Background & Placement Target Discussion\n- [ ] System Design Architecture Review (Distributed Caching)\n- [ ] Database Sharding & Read-Replicas Strategies\n- [ ] Q&A and Mock Scorecard Feedback'
+  );
+
+  // Completion & Escrow Modal
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [sessionRating, setSessionRating] = useState(5);
+  const [feedbackNote, setFeedbackNote] = useState('Excellent actionable feedback on distributed caching and interview whiteboard skills!');
+  const [isEscrowReleased, setIsEscrowReleased] = useState(isCompleted);
 
   // 60-minute countdown simulation
-  const [secondsRemaining, setSecondsRemaining] = useState(3600);
+  const [secondsRemaining, setSecondsRemaining] = useState(currentBooking.durationMinutes ? currentBooking.durationMinutes * 60 : 3600);
 
   useEffect(() => {
+    if (!isClassroomJoined) return;
     const timer = setInterval(() => {
       setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isClassroomJoined]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -55,214 +79,290 @@ export const SessionRoomPage: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim()) return;
-    setMessages([
-      ...messages,
-      {
-        id: `msg-${Date.now()}`,
-        sender: user?.name || 'You',
-        text: messageInput.trim(),
-        time: 'Just now',
-      },
-    ]);
-    setMessageInput('');
+  const handleConfirmCompletion = () => {
+    completeSessionAndReleaseEscrow(currentBooking.id);
+    setIsEscrowReleased(true);
+    setShowCompletionModal(false);
   };
 
-  const handleLeaveSession = () => {
-    if (window.confirm('Are you sure you want to end this simulated session?')) {
-      navigate('/student');
-    }
-  };
+  const roomName = `SkillBridge-Session-${(currentBooking.id || 'demo').replace(/[^a-zA-Z0-9]/g, '')}`;
+  const displayName = encodeURIComponent(user?.name || (user?.role === 'mentor' ? currentBooking.mentorName : currentBooking.studentName) || 'Participant');
+  const jitsiUrl = `https://meet.jit.si/${roomName}#userInfo.displayName="${displayName}"&config.prejoinPageEnabled=false&config.toolbarButtons=["camera","microphone","desktop","chat","raisehand","tileview","hangup"]`;
 
   return (
-    <div className="h-screen bg-slate-950 text-white flex flex-col overflow-hidden">
-      {/* Top Header */}
-      <header className="h-14 border-b border-white/10 px-4 md:px-6 flex items-center justify-between bg-slate-900/60 backdrop-blur-md">
+    <div className="h-screen bg-slate-950 text-white flex flex-col overflow-hidden font-sans">
+      {/* Top Session Header */}
+      <header className="h-14 border-b border-white/10 px-4 md:px-6 flex items-center justify-between bg-slate-900/90 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+          <Link
+            to={user?.role === 'mentor' ? '/mentor' : '/student'}
+            className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs hover:bg-blue-500 transition-colors"
+          >
             SB
-          </div>
+          </Link>
           <div>
             <div className="font-semibold text-xs text-white flex items-center gap-2">
-              <span>SkillBridge Encrypted Room</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>SkillBridge Encrypted Video Classroom</span>
+              <span className={`w-2 h-2 rounded-full ${isClassroomJoined ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
             </div>
             <div className="text-[10px] text-slate-400">
-              Session #{sessionId || 'demo'} • 1-on-1 Direct Video Bridge
+              {currentBooking.packageTitle} • Session #{currentBooking.id}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs font-mono font-medium flex items-center gap-1.5 text-slate-200">
+          {/* Scheduled Day / Time Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs font-mono font-medium text-slate-200">
             <Clock className="w-3.5 h-3.5 text-blue-400" />
-            <span>{formatTime(secondsRemaining)} remaining</span>
+            <span>{isClassroomJoined ? `${formatTime(secondsRemaining)} remaining` : `Scheduled: ${currentBooking.date}, ${currentBooking.timeSlot}`}</span>
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px]">
+          {/* Prepaid Escrow Status Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Simulated Escrow Active</span>
+            <span>
+              {isEscrowReleased ? 'Escrow Released to Mentor' : `Escrow Locked: ₹${(currentBooking.amountInr || 2499).toLocaleString('en-IN')}`}
+            </span>
           </div>
+
+          {/* Complete / Leave Button */}
+          {isClassroomJoined && (
+            <button
+              onClick={() => setShowCompletionModal(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Complete & Release Escrow</span>
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Main Grid: Video Stream + Side Panel */}
+      {/* Main Classroom Workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Main Video Stage */}
+        {/* Left Side: Video Viewport */}
         <div className="flex-1 p-4 flex flex-col justify-between relative bg-slate-950">
-          {/* Main Video Tile */}
-          <div className="flex-1 rounded-2xl bg-slate-900 border border-white/10 relative overflow-hidden flex items-center justify-center shadow-inner">
-            <div className="text-center space-y-3">
-              <div className="w-20 h-20 rounded-full bg-blue-600/20 border-2 border-blue-500/30 flex items-center justify-center mx-auto text-blue-400 text-2xl font-bold">
-                M
+          {!isClassroomJoined ? (
+            /* Lobby & Scheduled Day Gate */
+            <div className="flex-1 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-white/10 flex flex-col items-center justify-center p-6 text-center space-y-6">
+              <div className="w-20 h-20 rounded-3xl bg-blue-600/20 border-2 border-blue-500/30 flex items-center justify-center text-blue-400 shadow-xl">
+                <Video className="w-10 h-10" />
               </div>
-              <div>
-                <h3 className="font-semibold text-sm text-white">Verified Mentor Stream</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Live audio & screen sharing active (Simulated environment)
+
+              <div className="max-w-md space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5" /> Scheduled WebRTC Classroom
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  Ready to start your 1-on-1 session?
+                </h2>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Join with mentor <span className="text-white font-semibold">{currentBooking.mentorName}</span>. Your camera, audio, screen share, and collaborative notes will activate in-browser.
                 </p>
               </div>
-            </div>
 
-            {/* Picture-in-Picture Tile (Self) */}
-            <div className="absolute bottom-4 right-4 w-40 h-28 rounded-xl bg-slate-800 border border-white/20 shadow-lg overflow-hidden flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center mx-auto mb-1">
-                  {user?.name ? user.name.charAt(0) : 'Y'}
+              {/* Escrow Status Summary Banner */}
+              <div className="w-full max-w-md p-4 rounded-xl bg-slate-800/80 border border-white/10 text-left text-xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Class Date & Time:</span>
+                  <span className="font-bold text-amber-300">{currentBooking.date}, {currentBooking.timeSlot}</span>
                 </div>
-                <div className="text-[10px] text-slate-300 font-medium">You (Student)</div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Prepaid Escrow Deposit:</span>
+                  <span className="font-bold text-emerald-400">₹{(currentBooking.amountInr || 2499).toLocaleString('en-IN')} (Safely Held)</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px] pt-1 border-t border-white/5">
+                  <span className="text-slate-400">Escrow Release Policy:</span>
+                  <span className="text-slate-300 font-medium">Disbursed to mentor after mutual completion</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                <button
+                  onClick={() => setIsClassroomJoined(true)}
+                  className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Enter Live Video Classroom</span>
+                </button>
+                <Link
+                  to={user?.role === 'mentor' ? '/mentor' : '/student'}
+                  className="px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors flex items-center justify-center"
+                >
+                  Back to Hub
+                </Link>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Live Embedded WebRTC Meeting Frame */
+            <div className="flex-1 rounded-2xl bg-black border border-white/10 relative overflow-hidden shadow-2xl flex flex-col">
+              <iframe
+                title="SkillBridge Encrypted Video Session"
+                src={jitsiUrl}
+                allow="camera; microphone; fullscreen; display-capture; autoplay"
+                className="w-full h-full border-0 rounded-2xl"
+              />
+            </div>
+          )}
 
-          {/* Bottom Floating Control Bar */}
-          <div className="pt-4 flex items-center justify-center gap-3">
-            <button
-              onClick={() => setIsMicOn(!isMicOn)}
-              className={`p-3 rounded-full border transition-all ${
-                isMicOn
-                  ? 'bg-slate-800 border-white/20 text-white hover:bg-slate-700'
-                  : 'bg-rose-600 border-rose-500 text-white hover:bg-rose-700'
-              }`}
-              title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
-            >
-              {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-            </button>
-
-            <button
-              onClick={() => setIsVideoOn(!isVideoOn)}
-              className={`p-3 rounded-full border transition-all ${
-                isVideoOn
-                  ? 'bg-slate-800 border-white/20 text-white hover:bg-slate-700'
-                  : 'bg-rose-600 border-rose-500 text-white hover:bg-rose-700'
-              }`}
-              title={isVideoOn ? 'Stop Video' : 'Start Video'}
-            >
-              {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-            </button>
-
-            <button
-              onClick={() => setIsScreenSharing(!isScreenSharing)}
-              className={`p-3 rounded-full border transition-all ${
-                isScreenSharing
-                  ? 'bg-blue-600 border-blue-500 text-white'
-                  : 'bg-slate-800 border-white/20 text-white hover:bg-slate-700'
-              }`}
-              title="Share Screen"
-            >
-              <MonitorUp className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={handleLeaveSession}
-              className="px-5 py-3 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-2 shadow-lg transition-all"
-            >
-              <PhoneOff className="w-4 h-4" />
-              <span>Leave Session</span>
-            </button>
-          </div>
+          {/* Bottom Toolbar when in call */}
+          {isClassroomJoined && (
+            <div className="pt-3 flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>WebRTC End-to-End Encrypted Tunnel</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowCompletionModal(true)}
+                  className="text-emerald-400 hover:text-emerald-300 font-semibold"
+                >
+                  Mark Session Concluded & Release Payout &rarr;
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Panel: Chat & Notes */}
-        <aside className="w-80 border-l border-white/10 bg-slate-900 flex flex-col justify-between hidden md:flex">
-          <div>
-            {/* Panel Tabs */}
-            <div className="flex border-b border-white/10">
-              <button
-                onClick={() => setActiveSideTab('chat')}
-                className={`flex-1 py-3 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                  activeSideTab === 'chat'
-                    ? 'text-blue-400 border-b-2 border-blue-400 bg-white/5'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                Live Chat
-              </button>
-              <button
-                onClick={() => setActiveSideTab('notes')}
-                className={`flex-1 py-3 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                  activeSideTab === 'notes'
-                    ? 'text-blue-400 border-b-2 border-blue-400 bg-white/5'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                Session Notes
-              </button>
+        {/* Right Side Panel: Interactive Notes & Agenda */}
+        <aside className="w-80 border-l border-white/10 bg-slate-900 flex flex-col justify-between hidden lg:flex">
+          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-white">
+              <FileText className="w-4 h-4 text-blue-400" />
+              <span>Session Agenda & Notes</span>
             </div>
-
-            {/* Chat Body */}
-            {activeSideTab === 'chat' ? (
-              <div className="p-4 space-y-3 h-[calc(100vh-210px)] overflow-y-auto">
-                {messages.map((m) => (
-                  <div key={m.id} className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span className="font-semibold text-slate-300">{m.sender}</span>
-                      <span>{m.time}</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-800 border border-white/10 text-xs text-slate-200">
-                      {m.text}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 space-y-3">
-                <div className="text-[11px] text-slate-400">
-                  Shared scratchpad for whiteboard points, architectural links, and action items:
-                </div>
-                <textarea
-                  placeholder="• Review distributed cache invalidation&#10;• Practice LeetCode 208 (Trie)&#10;• Revamp resume system bullets"
-                  rows={14}
-                  className="w-full p-3 rounded-xl bg-slate-800 border border-white/10 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                />
-              </div>
-            )}
+            <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-slate-300">
+              Auto-saved
+            </span>
           </div>
 
-          {/* Chat Input */}
-          {activeSideTab === 'chat' && (
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-white/10 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Type code or message..."
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl bg-slate-800 border border-white/10 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                className="p-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
-          )}
+          <div className="flex-1 p-4 flex flex-col overflow-hidden">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Take live session notes, code links, and action items..."
+              className="w-full flex-1 bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-slate-200 font-mono focus:outline-hidden focus:border-blue-500/50 resize-none leading-relaxed"
+            />
+          </div>
+
+          <div className="p-4 border-t border-white/10 bg-slate-950/40 space-y-3">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Platform Escrow Protection:</span>
+              <span className="text-emerald-400 font-semibold">Active</span>
+            </div>
+            <button
+              onClick={() => setShowCompletionModal(true)}
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Complete & Release Escrow</span>
+            </button>
+          </div>
         </aside>
       </div>
+
+      {/* Completion & Escrow Release Modal */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-white/15 rounded-3xl p-6 text-white space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
+                <Award className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-black text-white">Conclude Session & Release Escrow</h3>
+              <p className="text-xs text-slate-400">
+                Confirm that your 1-on-1 mentorship class with <span className="text-white font-semibold">{currentBooking.mentorName}</span> has completed.
+              </p>
+            </div>
+
+            {/* Payout Breakdown */}
+            <div className="p-4 rounded-xl bg-slate-950 border border-white/10 text-xs space-y-2">
+              <div className="flex justify-between text-slate-400">
+                <span>Escrow Held Amount:</span>
+                <span className="text-white font-semibold">₹{(currentBooking.amountInr || 2499).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Platform Commission (10%):</span>
+                <span className="text-white font-semibold">₹{Math.round((currentBooking.amountInr || 2499) * 0.1).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-white/10 font-bold">
+                <span className="text-emerald-400">Release Payout to Mentor Bank:</span>
+                <span className="text-emerald-400 text-sm">₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            {/* Rating Stars */}
+            <div className="space-y-1.5 text-center">
+              <label className="text-xs font-semibold text-slate-300">How was the session experience?</label>
+              <div className="flex justify-center gap-2 pt-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setSessionRating(star)}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={`w-6 h-6 ${
+                        star <= sessionRating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Feedback note */}
+            <div>
+              <textarea
+                value={feedbackNote}
+                onChange={(e) => setFeedbackNote(e.target.value)}
+                rows={2}
+                placeholder="Leave a brief review for the mentor..."
+                className="w-full p-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-hidden focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                onClick={handleConfirmCompletion}
+                className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Confirm & Release ₹{(currentBooking.mentorPayoutInr || 2250).toLocaleString('en-IN')}</span>
+              </button>
+              <button
+                onClick={() => setShowCompletionModal(false)}
+                className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 font-bold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Release Celebratory Toast */}
+      {isEscrowReleased && !showCompletionModal && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm p-4 rounded-2xl bg-slate-900 border border-emerald-500/40 shadow-2xl text-white space-y-2 animate-in slide-in-from-bottom-3 duration-200">
+          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Escrow Disbursed to Mentor Bank</span>
+          </div>
+          <p className="text-[11px] text-slate-300">
+            Payment has been successfully settled for Session #{currentBooking.id}. Scorecard feedback saved.
+          </p>
+          <div className="pt-1 flex gap-2">
+            <Link
+              to="/student"
+              className="text-[11px] font-bold text-blue-400 hover:text-blue-300"
+            >
+              Back to Student Hub &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

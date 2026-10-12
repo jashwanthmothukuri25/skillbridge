@@ -62,4 +62,24 @@ export interface Booking {
   packagePriceINR?: number;
   status: 'upcoming' | 'pending' | 'completed' | 'cancelled';
   zoomLink?: string;
+  // Escrow & Payment Fields
+  paymentStatus?: 'escrow_held' | 'escrow_released' | 'refunded';
+  escrowHoldRef?: string;
+  platformFeeInr?: number;
+  mentorPayoutInr?: number;
+  paymentMethod?: string;
+  sessionCompletedAt?: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  userId?: string;
+  role?: 'student' | 'mentor' | 'all';
+  title: string;
+  message: string;
+  type: 'class_reminder' | 'payment_escrow' | 'payout_released' | 'booking_confirmed';
+  createdAt: string;
+  read: boolean;
+  actionUrl?: string;
+  actionLabel?: string;
 }
