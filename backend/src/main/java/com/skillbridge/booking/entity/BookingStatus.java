@@ -1,0 +1,22 @@
+package com.skillbridge.booking.entity;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+public enum BookingStatus {
+    UPCOMING,
+    PENDING,
+    COMPLETED,
+    CANCELLED;
+
+    @JsonValue
+    public String toValue() {
+        return name().toLowerCase();
+    }
+
+    @JsonCreator
+    public static BookingStatus fromValue(String value) {
+        if (value == null) return null;
+        return BookingStatus.valueOf(value.trim().toUpperCase());
+    }
+}

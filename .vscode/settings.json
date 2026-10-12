@@ -1,0 +1,12 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "maven.executable.path": "/Users/nallaningishivakaminigoud/Downloads/apache-maven-3.9.16/bin/mvn",
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "css.lint.unknownAtRules": "ignore",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/target": false
+  }
+}
