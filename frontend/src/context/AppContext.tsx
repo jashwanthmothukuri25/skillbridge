@@ -441,7 +441,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const completeSessionAndReleaseEscrow = (bookingId: string) => {
-    const utr = `UTR-SB-IMPS-${Math.floor(100000 + Math.random() * 900000)}`;
+    const utr = `IMPS-HDFC-${Math.floor(100000000000 + Math.random() * 900000000000)}`;
 
     setBookings((prev) =>
       prev.map((b) => {
@@ -463,12 +463,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const mentorBank = targetBooking?.mentorBankAccount || 'HDFC Bank A/C •••• 4892 (IFSC: HDFC0001234)';
 
     addNotification({
-      title: '🏛️ Money Added to Mentor Bank Account!',
-      message: `Session completed! The bank escrow released ₹${payout.toLocaleString('en-IN')} directly into mentor's account (${mentorBank}) via IMPS (Ref: ${utr}).`,
+      title: '🤖 App Automated Payout: Credited to Mentor Bank',
+      message: `Session concluded! SkillBridge App Engine automatically transferred ₹${payout.toLocaleString('en-IN')} to mentor's bank account (${mentorBank}) via IMPS Ref: ${utr}. Executed by app automatically (no student permission needed).`,
       type: 'payout_released',
       role: 'all',
-      actionUrl: '/student',
-      actionLabel: 'View Bank Transfer'
+      actionUrl: '/mentor',
+      actionLabel: 'View Bank Receipt'
     });
   };
 
