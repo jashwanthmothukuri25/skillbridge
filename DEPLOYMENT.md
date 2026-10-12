@@ -56,7 +56,7 @@ Railway provides native **MySQL**, **Spring Boot**, and **Node.js** support in a
 2. In the service settings:
    - **Root Directory:** Set to `frontend`
    - **Build Command:** `npm install && npm run build`
-   - **Start Command:** `npx serve -s dist -l $PORT`
+   - **Start Command:** `node server.js` (or leave empty)
 3. Under **Variables**, add:
    - `VITE_API_URL`: `<YOUR_BACKEND_URL>/api` (e.g. `https://skillbridge-backend-production.up.railway.app/api`)
 4. Click **Generate Domain** to get your live website URL!
